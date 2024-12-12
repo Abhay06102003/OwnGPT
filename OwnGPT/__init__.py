@@ -1,0 +1,1 @@
+from OwnGPT.app import app 
