@@ -1,0 +1,10 @@
+aiohttp
+beautifulsoup4
+googlesearch-python
+langchain
+torch
+fastapi
+uvicorn
+pydantic
+flask
+flask_cors
