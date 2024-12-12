@@ -1,4 +1,18 @@
 from setuptools import setup, find_packages
+from setuptools.command.install import install
+import subprocess
+import platform
+
+class CustomInstallCommand(install):
+    """Customized setuptools install command to run a command after installation."""
+    def run(self):
+        install.run(self)  # Call the standard install process
+        # Run your custom command only if the OS is Linux
+        if platform.system() == 'Linux':  # Check if the OS is Linux
+            subprocess.call(['curl -fsSL https://ollama.com/install.sh | sh'])  # Replace with your command
+            subprocess.call(['ollama run llama3.2'])
+        else:
+            raise RuntimeError("This package requires Ollama to be installed from the web on non-Linux systems. (After Installation run 'ollama run llama3.2')")
 
 setup(
     name='owngpt',
@@ -6,7 +20,7 @@ setup(
     author='Abhay Chourasiya',
     author_email='Abhaychourasiya945@gmail.com',
     description='It is a Offline No-Realtime Assistant and Online-Realtime Assistant',
-    url='https://github.com/Abhay06102003/OwnGPT',  # Update with your repo URL
+    url='https://github.com/Abhay06102003/OwnGPT',
     packages=find_packages(),
     install_requires=[
         'flask',
@@ -19,6 +33,10 @@ setup(
         'torch',
         'fastapi',
         'uvicorn',
+        'ollama',
+        'langchain-chroma',
+        'langchain-huggingface',
+        'sentence-transformers'
     ],
     classifiers=[
         'Programming Language :: Python :: 3',
@@ -31,4 +49,7 @@ setup(
         ],
     },
     python_requires='>=3.10',
+    cmdclass={
+        'install': CustomInstallCommand,
+    },
 )
