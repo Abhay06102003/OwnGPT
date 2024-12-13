@@ -11,6 +11,13 @@ OwnGPT is an offline and online real-time assistant that leverages advanced AI t
 
 ## Installation
 
+Install some pre-requesites : 
+
+1. Install Ollama from web.
+2. RUN
+```
+ollama pull llama3.2
+```
 To install OwnGPT, clone the repository and install the required packages:
 ```
 git clone https://github.com/Abhay06102003/OwnGPT.git
