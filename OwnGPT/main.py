@@ -120,14 +120,14 @@ class OwnGPT:
 
         Query: {query}
 
-        Based on the provided context and query, generate a comprehensive and informative response.
+        Generate a comprehensive and informative response based on the provided context and query. 
+        For greetings or salutations in the query, respond with a suitable greeting or acknowledgement, without providing additional descriptions. 
         Ensure the response is:
-        - If it is salution or anything that don't need description,Dont give any description. EXAMPLE : 'hi','Nice',etc
         - Directly relevant to the query
         - Synthesized from the given context
-        - Clear and Description Explanatory.
+        - Clear and explanatory
         - Provides valuable insights
-        - Summarize and give in detail response in English.
+        - Summarizes and gives detailed information in English.
         """
 
         try:
