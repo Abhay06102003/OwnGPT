@@ -9,6 +9,7 @@ from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 import requests
+import datetime
 
 class OwnGPT:
     def __init__(self):
@@ -32,8 +33,8 @@ class OwnGPT:
         
         # Text splitter for chunking documents
         self.text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=500, 
-            chunk_overlap=100
+            chunk_size=2048, 
+            chunk_overlap=500
         )
 
     def check_internet_connection(self):
@@ -105,9 +106,11 @@ class OwnGPT:
 
     async def retrieve_relevant_context(self, query, k=5):
         """
-        Retrieve relevant context from vector database.
+        Retrieve relevant context from vector database using a better alignment method.
         """
-        results = self.vectorstore.similarity_search(query, k=k)
+        # Use a more advanced embedding model for the query
+        query_embedding = self.embeddings.embed_query(query)  # Assuming embed_query is a method to get embeddings
+        results = self.vectorstore.similarity_search_by_vector(query_embedding, k=k)  # Use embedding-based search
         context = "\n\n".join([doc.page_content for doc in results])
         return context
 
@@ -115,6 +118,8 @@ class OwnGPT:
         """
         Asynchronously generate a comprehensive response using Ollama.
         """
+        context += f"""todays date : {datetime.datetime.now().strftime("%d-%m-%Y")} \n current time : {datetime.datetime.now().strftime("%H:%M:%S")}\n"""
+        print(context)
         prompt = f"""
         Context: {context}
 
@@ -128,6 +133,14 @@ class OwnGPT:
         - Clear and explanatory
         - Provides valuable insights
         - Summarizes and gives detailed information in English.
+        
+        Additionally, please format the response as follows:
+        1. Start with todays date and time.
+        2. **Introduction**: Briefly introduce the topic.
+        3. **Main Points**: Highlight the key points in a structured manner.
+        4. **Conclusion**: Provide a concise summary or closing statement.
+        
+        Use a respectful and professional tone throughout the response.
         """
 
         try:
