@@ -18,10 +18,14 @@ def ask():
     query_request = request.get_json()
     query = query_request.get('query', '')
     
+    # Gather tasks to run concurrently
     urls = inst.get_google_search_urls(query=query)
-    texts = asyncio.run(inst.extract_and_clean_text(urls))
-    inst.store_texts_in_vector_db(texts)
-    context = asyncio.run(inst.retrieve_relevant_context(query))
+    tasks = [
+        inst.extract_and_clean_text(urls),
+        inst.store_texts_in_vector_db(texts),  # This should be awaited if it's async
+        inst.retrieve_relevant_context(query),
+    ]
+    texts, context = asyncio.run(asyncio.gather(*tasks))
     response = asyncio.run(inst.generate_response(query=query, context=context))
     
     return jsonify({"response": response})
@@ -45,4 +49,4 @@ def main():
     response = asyncio.run(inst.generate_response(query=query, context=context))
     
 if __name__ == "__main__":
-    app.run(host='127.0.0.1', port=8000,debug = True)
+    app.run(host='127.0.0.1', port=8000, debug=True, threaded=True)  # Enable threading

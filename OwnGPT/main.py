@@ -5,10 +5,10 @@ from googlesearch import search
 from bs4 import BeautifulSoup
 from ollama import AsyncClient
 import torch
-# Langchain and vector DB imports
 from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+import requests
 
 class OwnGPT:
     def __init__(self):
@@ -16,8 +16,7 @@ class OwnGPT:
         Initialize OwnGPT with Ollama configuration and vector database.
         """
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        # print(self.device)
-        self.num_results = 2
+        self.num_results = 8
         self.headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
             'Accept-Language': 'en-US,en;q=0.9',
@@ -37,10 +36,24 @@ class OwnGPT:
             chunk_overlap=100
         )
 
+    def check_internet_connection(self):
+        """
+        Check if the internet connection is available.
+        """
+        try:
+            response = requests.get("http://www.google.com", timeout=5)
+            return True
+        except requests.ConnectionError:
+            return False
+
     def get_google_search_urls(self, query):
         """
         Fetch search result URLs from Google.
         """
+        if not self.check_internet_connection():
+            print("No internet connection. No Real-time access")
+            return []
+
         try:
             return list(search(query, num_results=self.num_results, lang="en"))
         except Exception as e:
@@ -53,12 +66,8 @@ class OwnGPT:
         """
         try:
             async with session.get(url, headers=self.headers, timeout=10) as response:
-                response.raise_for_status()
                 content = await response.text()
-                
                 soup = BeautifulSoup(content, 'html.parser')
-                
-                # Try multiple methods to extract main content
                 article_text = soup.find(['article', 'main', 'div.content', 'div.article-body'])
                 
                 if article_text:
@@ -66,9 +75,7 @@ class OwnGPT:
                 else:
                     text = soup.get_text(separator=' ', strip=True)
                 
-                # Clean up extra whitespaces and remove excessive newlines
                 cleaned_text = ' '.join(text.split())
-                
                 return cleaned_text
         
         except Exception as e:
@@ -82,7 +89,6 @@ class OwnGPT:
         async with aiohttp.ClientSession() as session:
             tasks = [self.extract_text_from_url(session, url) for url in urls]
             results = await asyncio.gather(*tasks)
-            
             return dict(zip(urls, results))
 
     def store_texts_in_vector_db(self, texts):
@@ -91,23 +97,17 @@ class OwnGPT:
         """
         for url, text in texts.items():
             if text:
-                # Split text into chunks
                 text_chunks = self.text_splitter.split_text(text)
-                
-                # Add chunks to vector store with metadata
                 self.vectorstore.add_texts(
                     texts=text_chunks, 
                     metadatas=[{'source': url}] * len(text_chunks)
                 )
 
-    async def retrieve_relevant_context(self, query, k=3):
+    async def retrieve_relevant_context(self, query, k=5):
         """
         Retrieve relevant context from vector database.
         """
-        # Perform similarity search
         results = self.vectorstore.similarity_search(query, k=k)
-        
-        # Extract and combine context
         context = "\n\n".join([doc.page_content for doc in results])
         return context
 
@@ -115,7 +115,6 @@ class OwnGPT:
         """
         Asynchronously generate a comprehensive response using Ollama.
         """
-        # Prepare the prompt with retrieved context
         prompt = f"""
         Context: {context}
 
@@ -123,6 +122,7 @@ class OwnGPT:
 
         Based on the provided context and query, generate a comprehensive and informative response.
         Ensure the response is:
+        - If it is salution or anything that don't need description,Dont give any description. EXAMPLE : 'hi','Nice',etc
         - Directly relevant to the query
         - Synthesized from the given context
         - Clear and Description Explanatory.
@@ -161,7 +161,7 @@ async def main():
     # Retrieve relevant context
     print("RETRIEVING RELEVANT CONTEXT")
     context = await inst.retrieve_relevant_context(query)
-    # print(context)
+    
     # Generate response
     print("GENERATING RESPONSE")
     response = await inst.generate_response(query=query, context=context)
